@@ -8,9 +8,6 @@ from io import BytesIO
 from pathlib import Path
 from datetime import datetime, date, timezone
 from pandas.tseries.offsets import DateOffset
-import snowflake.connector
-from cryptography.hazmat.primitives import serialization
-
 
 from py_files.dataset import create_dataset
 from py_files.forecast_core import run_kalman_model
@@ -19,12 +16,12 @@ from py_files.charts_core import run_charts
 from py_files.optimize_core import run_optimization
 from py_files.utils import build_dial_yoy_block
 
-# SF Specific Modules and Functions
+# PostgreSQL Specific Modules and Functions
 from py_files.create_and_upload import create_external_datasets
-from py_files.sf_utils_helpers import (get_sf_connection, fetch_latest_long, pivot_long_to_wide, df_nan_to_none)
-from py_files.sf_upload_helpers import (upload_fred_long, upload_forward_long, upload_client_long, publish_charts)
-from py_files.sf_build_helpers import build_meta_registry
-from py_files.sf_upload_helpers import (
+from py_files.pg_utils_helpers import (get_pg_connection, fetch_latest_long, pivot_long_to_wide, df_nan_to_none)
+from py_files.pg_upload_helpers import (upload_long, publish_charts)
+from py_files.pg_build_helpers import build_meta_registry
+from py_files.pg_upload_helpers import (
     write_forecast_registry,
     write_df_wide,
     write_dial_values_long,
@@ -37,14 +34,14 @@ from py_files.sf_upload_helpers import (
     write_tree
 )
 
-from py_files.sf_chart_specs import CHART_SPECS
+from py_files.pg_chart_specs import CHART_SPECS
 from py_files.run_configs import RUN_CONFIG as cfg_run
 from py_files.run_configs import DF_COLUMN_REGISTRY
 from py_files.model_configs import MODEL_CONFIG
 
 
 # ============================================================
-# PUBLIC API
+# BUILD ARTIFACTS FUNCTION
 # ============================================================
 
 def build_artifacts():
@@ -58,21 +55,21 @@ def build_artifacts():
     # ----------------------------
     fred_dataset, forward_dataset, client_dataset = create_external_datasets()
 
-    conn = get_sf_connection()
-    upload_fred_long(conn, fred_dataset)
-    upload_forward_long(conn, forward_dataset)
-    upload_client_long(conn, client_dataset)
+    conn = get_pg_connection()
+    upload_long(conn, fred_dataset, "fred_long")
+    upload_long(conn, forward_dataset, "forward_long")
+    upload_long(conn, client_dataset, "client_long")
     conn.close()
 
-    conn = get_sf_connection()
-    fred_long    = fetch_latest_long(conn, "FRED_LONG")
-    client_long  = fetch_latest_long(conn, "CLIENT_LONG")
-    forward_long = fetch_latest_long(conn, "FORWARD_LONG")
+    conn = get_pg_connection()
+    fred_long    = fetch_latest_long(conn, "fred_long")
+    client_long  = fetch_latest_long(conn, "client_long")
+    forward_long = fetch_latest_long(conn, "forward_long")
     conn.close()
 
-    fred_df    = pivot_long_to_wide(fred_long).set_index("PERIOD_DATE")
-    client_df  = pivot_long_to_wide(client_long).set_index("PERIOD_DATE")
-    forward_df = pivot_long_to_wide(forward_long).set_index("PERIOD_DATE")
+    fred_df    = pivot_long_to_wide(fred_long).set_index("period_date")
+    client_df  = pivot_long_to_wide(client_long).set_index("period_date")
+    forward_df = pivot_long_to_wide(forward_long).set_index("period_date")
 
     df_wide = client_df.join(fred_df)
     df = create_dataset(df_wide, forward_df)
@@ -147,7 +144,7 @@ def build_artifacts():
     # capture charts for PY preview mode
     charts_out = run_charts(df, MODEL_CONFIG, upstream_sims_dict, downstream_sims_dict)
 
-    # capture forecast distribution data for SF
+    # capture forecast distribution data for PG
     fcst_dist_df_long = pd.concat(charts_out["fcst_distributions"].values(), ignore_index=True)
     
     # dial values -----------------------------------------------------------------------
@@ -176,13 +173,13 @@ def build_artifacts():
 
     dial_values_long = pd.concat([ttm_yoy_long, fcst_yoy_long], axis=0)
 
-    # prep df for publish mode. SF does not have indices
+    # prep df for publish mode. PG does not have indices
     DF_COLUMNS_KEEP = [k for k, v in DF_COLUMN_REGISTRY.items() if v == 1]
     df = df.reset_index()
     df = df.rename(columns={"index":"period_date"})
     df["period_date"] = pd.to_datetime(df["period_date"]).dt.strftime("%Y-%m-%d")
     df["period_date"] = pd.to_datetime(df["period_date"])
-    df = df_nan_to_none(df) # converts NaNs to None, which SF can handle
+    df = df_nan_to_none(df) # converts NaNs to None, which PG can handle
     df_wide = df[DF_COLUMNS_KEEP]
 
     # ----------------------------
@@ -235,7 +232,7 @@ if __name__ == "__main__":
 
     
     # ------------------------------------------------------------
-    # Publish to SF (explicit, manual)
+    # Publish to PostgreSQL (explicit, manual)
     # ------------------------------------------------------------
     typed = input("Type True to publish: ")
     PUBLISH = (typed == "True")
@@ -252,7 +249,7 @@ if __name__ == "__main__":
             "notes": "Baseline Forecast",
         }
 
-        conn = get_sf_connection()
+        conn = get_pg_connection()
         cur = conn.cursor()
 
         # --------------------------------------------------
@@ -286,16 +283,16 @@ if __name__ == "__main__":
         # Publish df wide -----------------------------------
         print(f"Publishing df wide:{len(df_wide,)} rows")
 
-        #1 convert to a date that SF can read
+        #1 convert to a date that PostgreSQL can read
         df_wide["period_date"] = pd.to_datetime(df_wide["period_date"]).dt.date
 
         #2 insert run_id
         df_wide["run_id"] = registry_record["run_id"]
         
         #3 convert NaNs to None
-        df_wide = df_nan_to_none(df_wide) # convert remaining NaN → None for Snowflake
+        df_wide = df_nan_to_none(df_wide)
 
-        #4 write to SF
+        #4 write to PostgreSQL
         write_df_wide(conn, df_wide)
 
         # Publish dial values -----------------------------------
@@ -304,16 +301,16 @@ if __name__ == "__main__":
         #1 insert run_id
         dial_values_long["run_id"] = registry_record["run_id"]
         
-        #3 convert NaNs to None
-        dial_values_long = df_nan_to_none(dial_values_long) # convert remaining NaN → None for Snowflake
+        #2 convert NaNs to None
+        dial_values_long = df_nan_to_none(dial_values_long)
 
-        #4 write to SF
+        #3 write to PostgreSQL
         write_dial_values_long(conn, dial_values_long)
         
-        # Publish betas: beta charts -----------------------------------
+        # Publish betas -----------------------------------
         print(f"Publishing betas:{len(betas_df_long,)} rows")
 
-        #1 convert to a date that SF can read
+        #1 convert to a date that PostgreSQL can read
         betas_df_long["period_date"] = pd.to_datetime(betas_df_long["period_date"]).dt.date
         
         #2 insert run_id
@@ -321,17 +318,17 @@ if __name__ == "__main__":
         betas_df_long = betas_df_long.dropna(subset=["beta_value"])
         
         #3 convert NaNs to None
-        betas_df_long = df_nan_to_none(betas_df_long) # convert remaining NaN → None for Snowflake
+        betas_df_long = df_nan_to_none(betas_df_long)
         
-        #4 write to SF
+        #4 write to PostgreSQL
         write_betas_df_long(conn, betas_df_long)
         
-        # upload price grid: used for scenarios --------------------------------------------------------------
+        # upload price grid -----------------------------------
         print(f"Publishing price_grid_df:{len(price_grid_df)} rows")
 
         write_optimization_df_results(conn=conn, price_grid_df=price_grid_df, run_id=registry_record["run_id"])
 
-        # upload forecast distribution: level and yoy forecast prob dist charts--------------------------------
+        # upload forecast distribution -----------------------------------
         print(f"Publishing fcst_dist_df:{len(fcst_dist_df_long)} rows")
         
         #1 insert run_id
@@ -341,13 +338,13 @@ if __name__ == "__main__":
         #2 convert NaNs to None
         fcst_dist_df_long = df_nan_to_none(fcst_dist_df_long)
 
-        #2 write to SF
+        #3 write to PostgreSQL
         write_fcst_distributions_results(conn=conn, fcst_dist_df=fcst_dist_df_long)
         
-        # upload holdout results -------------------------------------------------
+        # upload holdout results -----------------------------------
         print(f"Publishing holdout_results:{len(holdout_df_long)} rows")
       
-        #1 convert to a date that SF can read
+        #1 convert to a date that PostgreSQL can read
         holdout_df_long["period_date"] = pd.to_datetime(holdout_df_long["period_date"]).dt.date
         
         #2 insert run_id
@@ -355,35 +352,34 @@ if __name__ == "__main__":
         holdout_df_long = holdout_df_long.dropna(subset=["value"])
         
         #3 convert NaNs to None
-        holdout_df_long = df_nan_to_none(holdout_df_long) # convert remaining NaN → None for Snowflake
+        holdout_df_long = df_nan_to_none(holdout_df_long)
         
-        #4 write to SF
+        #4 write to PostgreSQL
         write_holdout_results(conn, holdout_df_long)
 
-        # upload mape results -------------------------------------------------
+        # upload mape results -----------------------------------
         print(f"Publishing mape_results:{len(rolling_mape_df_long)} rows")
         
-        #1 convert to a date that SF can read
+        #1 convert to a date that PostgreSQL can read
         rolling_mape_df_long["period_date"] = pd.to_datetime(rolling_mape_df_long["period_date"]).dt.date
         
         #2 insert run_id
         rolling_mape_df_long["run_id"] = registry_record["run_id"]
         rolling_mape_df_long = rolling_mape_df_long.dropna(subset=["mape_value"])
 
-        #3  convert NaNs to None
+        #3 convert NaNs to None
         rolling_mape_df_long = df_nan_to_none(rolling_mape_df_long)
 
-         #4 write to SF
+        #4 write to PostgreSQL
         write_mape_results(conn, rolling_mape_df_long)
 
-        # upload tree -------------------------------------------------
+        # upload tree -----------------------------------
         print(f"Publishing tree values:{len(df_tree,)} rows")
 
         #1 insert run_id
         df_tree["run_id"] = registry_record["run_id"]
         
-        #4 write to SF
+        #2 write to PostgreSQL
         write_tree(conn, df_tree)
                        
         conn.close()
-

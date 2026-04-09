@@ -35,3 +35,10 @@ intermediate/**/*
 # OS junk
 .DS_Store
 Thumbs.db
+
+# data objects 
+*.csv
+*.xlsx
+*.png
+*.jpg
+!dev_env/app/tab0/dz_logo.jpg
