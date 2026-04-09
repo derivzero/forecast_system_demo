@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./postgres/02_init_views.sql:/docker-entrypoint-initdb.d/02_init_views.sql
+      - ./postgres/03_seed_users.sql:/docker-entrypoint-initdb.d/03_seed_users.sql
+    networks:
+      - prem_network
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+    depends_on:
+      - streamlit
+    networks:
+      - prem_network
+
+
+  streamlit:
+    build:
+      context: /home/erickarlson/prem
+      dockerfile: streamlit/Dockerfile
+    container_name: streamlit
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DEPLOYMENT: onprem
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    volumes:
+      - ./dev_env:/dev_env
+    depends_on:
+      - postgres
+    networks:
+      - prem_network
+
+  dev_env:
+    build:
+      context: ./dev_env
+      dockerfile: Dockerfile
+    container_name: dev_env
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DEPLOYMENT: onprem
+    volumes:
+      - ./dev_env:/dev_env
+    depends_on:
+      - postgres
+    networks:
+      - prem_network
+
+
+  frpc:
+    image: alpine:latest
+    container_name: frpc
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /etc/frpc.toml:/etc/frpc.toml
+      - /usr/local/bin/frpc:/usr/local/bin/frpc
+    command: ["/usr/local/bin/frpc", "-c", "/etc/frpc.toml"]
+
+networks:
+  prem_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+
+# Environment files
+.env
+env/
+venv/
+.venv/
+
+# secrets
+.keys/
+*.pem
+*.p8
+
+# streamlit secrets
+.streamlit/
+*.toml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# Data and Output
+data/**/*.csv
+output/**/*
+intermediate/**/*
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
