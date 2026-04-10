@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from io import BytesIO
+import gc
 
 
 # ----------------------------------------------
@@ -8,11 +9,13 @@ from io import BytesIO
 # ----------------------------------------------
 
 def fig_to_bytes(fig):
+    import matplotlib.pyplot as plt
     buffer = BytesIO()
     fig.savefig(buffer, format="png", dpi=300)
     buffer.seek(0)
     image_bytes = buffer.read()
     buffer.close()
+    plt.close(fig)
     return image_bytes
 
 
@@ -70,7 +73,7 @@ def upload_long(conn, df_wide, table_name):
 # PUBLISH CHARTS
 # ----------------------------------------------
 
-def publish_charts(run_id, charts, chart_specs, conn):
+def publish_charts(run_id, charts, chart_specs, conn, batch_size=10):
     sql = """
         INSERT INTO output.chart_artifacts (
             run_id,
@@ -94,22 +97,28 @@ def publish_charts(run_id, charts, chart_specs, conn):
     if cur.fetchone()[0] > 0:
         raise ValueError(f"Run {run_id} already exists. Aborting publish.")
 
-    rows = []
+    chart_items = list(charts.items())
 
-    for chart_key, fig in charts.items():
-        image_bytes = fig_to_bytes(fig)
-        meta = chart_specs[chart_key]
+    for i in range(0, len(chart_items), batch_size):
+        batch = chart_items[i:i + batch_size]
+        rows = []
 
-        rows.append((
-            run_id,
-            chart_key,
-            meta["chart_group"],
-            meta["chart_type"],
-            image_bytes
-        ))
+        for chart_key, fig in batch:
+            image_bytes = fig_to_bytes(fig)
+            meta = chart_specs[chart_key]
 
-    cur.executemany(sql, rows)
-    conn.commit()
+            rows.append((
+                run_id,
+                chart_key,
+                meta["chart_group"],
+                meta["chart_type"],
+                image_bytes
+            ))
+
+        cur.executemany(sql, rows)
+        conn.commit()
+        gc.collect()
+        print(f"Published charts {i+1} to {min(i+batch_size, len(chart_items))} of {len(chart_items)}")
 
 
 # ----------------------------------------------

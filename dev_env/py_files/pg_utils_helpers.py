@@ -1,9 +1,8 @@
 import os
+import pandas as pd
 import psycopg2
-from dotenv import load_dotenv
 
 def get_pg_connection():
-    load_dotenv()
 
     return psycopg2.connect(
         host=os.getenv("PG_HOST"),
