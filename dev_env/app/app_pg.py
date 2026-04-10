@@ -7,7 +7,7 @@ import os
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
+#load_dotenv()
 
 # ----------------------------
 # Streamlit MUST be configured first
@@ -40,6 +40,7 @@ def auth_login_link():
         "prompt": "consent",
     }
 
+    print(f"DEBUG redirect_uri: {GOOGLE_REDIRECT_URI}")
     request_url = requests.Request("GET", AUTH_URL, params=params).prepare().url
     st.markdown(f"[Login with Google]({request_url})")
 
@@ -72,7 +73,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # ----------------------------------------
-# app_sf.py — MINIMAL FIRST PASS
+# app_pg.py — MINIMAL FIRST PASS
 # ----------------------------------------
 import pandas as pd
 import numpy as np
@@ -82,25 +83,24 @@ from matplotlib.ticker import FuncFormatter
 import plotly.graph_objects as go
 import psycopg2
 
-from py_files.sf_chart_specs import CHART_SPECS
+from py_files.pg_chart_specs import CHART_SPECS
 from py_files.run_configs import RUN_CONFIG as cfg_run
 
 # Define slices ---------------------------------------------------------
 start_train = pd.to_datetime(cfg_run.start_train)
 end_train   = pd.to_datetime(cfg_run.end_train)
-tart_fcst = pd.to_datetime(cfg_run.start_fcst)
+start_fcst = pd.to_datetime(cfg_run.start_fcst)
 end_fcst   = pd.to_datetime(cfg_run.end_fcst)
 
 # ----------------------------------------
 # PostgreSQL connection + query_pg
 # ----------------------------------------
-@st.cache_data(ttl=300)
 def query_pg(sql: str, params: tuple | None = None) -> pd.DataFrame:
     conn = psycopg2.connect(
-        host=os.getenv("PG_HOST", "postgres"),
-        database=os.getenv("PG_DATABASE", "postgres"),
-        user=os.getenv("PG_USER", "forecast_app_user"),
-        password=os.getenv("PG_PASSWORD")
+    host=os.getenv("PG_HOST", "postgres"),
+    database=os.getenv("PG_DATABASE", "postgres"),
+    user=os.getenv("PG_USER", "forecast_app_user"),
+    password=os.getenv("PG_APP_PASSWORD")
     )
     try:
         df = pd.read_sql(sql, conn, params=params)
@@ -125,7 +125,11 @@ if "user" not in st.session_state:
         st.stop()
     else:
         st.session_state["user"] = exchange_code_for_user(qp["code"])
+        st.query_params.clear()
         st.rerun()
+
+if "user" not in st.session_state:
+    st.stop()
 
 email = st.session_state["user"].get("email", "").lower()
 
@@ -164,7 +168,6 @@ def get_available_runs() -> pd.DataFrame:
     return df
 
 # Loads charts associated with a run_id
-@st.cache_data(show_spinner="Loading charts…")
 def load_charts(run_id):
     sql = """
         SELECT chart_key, image_data
@@ -179,7 +182,7 @@ def load_charts(run_id):
 # Grabs the artifacts associated with a run_id. Default is latest run_id
 # ------------------------------------------------------------------------
 
-# run function to call SF and grab available data
+# run function to call PG and grab available data
 runs_df = get_available_runs()
 
 # alert if no data loaded
@@ -278,7 +281,7 @@ def dial_header(txt, size=16):
 def get_dial_value(run_id, metric, value_type):
     sql = """
         SELECT value
-        FROM forecast_db.output.dial_values
+        FROM output.dial_values
         WHERE run_id = %s
           AND metric = %s
           AND value_type = %s
@@ -2010,7 +2013,7 @@ elif tab == "Financial Simulator":
     # --- Load df_wide ---
     df_wide = query_pg("""
         SELECT period_date, units, avg_price, avg_cost, fixed_cost, sales, cogs, gm, net_income
-        FROM forecast_db.output.df_wide
+        FROM output.df_wide
         WHERE run_id = %s
         ORDER BY period_date
     """, [run_id])
@@ -2020,7 +2023,7 @@ elif tab == "Financial Simulator":
     # --- Load price_grid ---
     price_grid_df = query_pg("""
         SELECT avg_price, units
-        FROM forecast_db.output.price_optimization_table
+        FROM output.price_optimization_table
         WHERE run_id = %s
         ORDER BY avg_price
     """, [run_id])
