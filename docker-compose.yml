@@ -14,6 +14,7 @@ services:
       - ./postgres/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
       - ./postgres/02_init_views.sql:/docker-entrypoint-initdb.d/02_init_views.sql
       - ./postgres/03_seed_users.sql:/docker-entrypoint-initdb.d/03_seed_users.sql
+      - ./postgres/04_set_passwords.sh:/docker-entrypoint-initdb.d/04_set_passwords.sh
     networks:
       - prem_network
 

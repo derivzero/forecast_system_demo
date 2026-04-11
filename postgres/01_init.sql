@@ -15,8 +15,8 @@ CREATE ROLE forecast_app_role;
 -- USERS
 -- ------------------------------------------------------------
 
-CREATE USER derivzero WITH PASSWORD 'Hambone66!!!';
-CREATE USER forecast_app_user WITH PASSWORD 'ScruffyScout!';
+CREATE USER derivzero;
+CREATE USER forecast_app_user;
 
 GRANT forecast_admin TO derivzero;
 GRANT forecast_app_role TO forecast_app_user;

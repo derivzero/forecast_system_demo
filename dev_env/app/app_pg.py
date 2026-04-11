@@ -99,7 +99,7 @@ def query_pg(sql: str, params: tuple | None = None) -> pd.DataFrame:
     conn = psycopg2.connect(
     host=os.getenv("PG_HOST", "postgres"),
     database=os.getenv("PG_DATABASE", "postgres"),
-    user=os.getenv("PG_USER", "forecast_app_user"),
+    user="forecast_app_user",
     password=os.getenv("PG_APP_PASSWORD")
     )
     try:
