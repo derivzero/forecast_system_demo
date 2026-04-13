@@ -69,17 +69,6 @@ services:
     networks:
       - prem_network
 
-
-  frpc:
-    image: alpine:latest
-    container_name: frpc
-    restart: unless-stopped
-    network_mode: host
-    volumes:
-      - /etc/frpc.toml:/etc/frpc.toml
-      - /usr/local/bin/frpc:/usr/local/bin/frpc
-    command: ["/usr/local/bin/frpc", "-c", "/etc/frpc.toml"]
-
 networks:
   prem_network:
     driver: bridge
