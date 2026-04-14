@@ -203,38 +203,6 @@ CREATE TABLE IF NOT EXISTS output.price_optimization_table (
     units           NUMERIC(18,0)
 );
 
-CREATE TABLE IF NOT EXISTS output.betas (
-    run_id          TEXT        NOT NULL,
-    period_date     DATE        NOT NULL,
-    dep             TEXT        NOT NULL,
-    beta_name       TEXT        NOT NULL,
-    beta_value      FLOAT       NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS output.forecast_distributions (
-    run_id          TEXT        NOT NULL,
-    dep             TEXT        NOT NULL,
-    horizon         TEXT        NOT NULL,
-    metric          TEXT        NOT NULL,
-    bin_id          NUMERIC(5,0) NOT NULL,
-    bin_center      FLOAT       NOT NULL,
-    probability     FLOAT       NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS output.holdout_results (
-    run_id          TEXT        NOT NULL,
-    dep             TEXT        NOT NULL,
-    period_date     DATE        NOT NULL,
-    value_type      TEXT        NOT NULL,
-    value           FLOAT
-);
-
-CREATE TABLE IF NOT EXISTS output.mape_results (
-    run_id          TEXT        NOT NULL,
-    period_date     DATE        NOT NULL,
-    mape_value      FLOAT       NOT NULL,
-    dep             TEXT        NOT NULL
-);
 
 CREATE TABLE IF NOT EXISTS output.chart_artifacts (
     run_id          TEXT        NOT NULL,

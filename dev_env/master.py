@@ -290,40 +290,9 @@ try:
     dial_values_long = df_nan_to_none(dial_values_long)
     write_dial_values_long(conn, dial_values_long)
 
-    # Publish betas -----------------------------------
-    print(f"Publishing betas:{len(betas_df_long,)} rows")
-    betas_df_long["period_date"] = pd.to_datetime(betas_df_long["period_date"]).dt.date
-    betas_df_long["run_id"] = registry_record["run_id"]
-    betas_df_long = betas_df_long.dropna(subset=["beta_value"])
-    betas_df_long = df_nan_to_none(betas_df_long)
-    write_betas_df_long(conn, betas_df_long)
-
     # upload price grid -----------------------------------
     print(f"Publishing price_grid_df:{len(price_grid_df)} rows")
     write_optimization_df_results(conn=conn, price_grid_df=price_grid_df, run_id=registry_record["run_id"])
-
-    # upload forecast distribution -----------------------------------
-    print(f"Publishing fcst_dist_df:{len(fcst_dist_df_long)} rows")
-    fcst_dist_df_long["run_id"] = registry_record["run_id"]
-    fcst_dist_df_long = fcst_dist_df_long.dropna(subset=["probability"])
-    fcst_dist_df_long = df_nan_to_none(fcst_dist_df_long)
-    write_fcst_distributions_results(conn=conn, fcst_dist_df=fcst_dist_df_long)
-
-    # upload holdout results -----------------------------------
-    print(f"Publishing holdout_results:{len(holdout_df_long)} rows")
-    holdout_df_long["period_date"] = pd.to_datetime(holdout_df_long["period_date"]).dt.date
-    holdout_df_long["run_id"] = registry_record["run_id"]
-    holdout_df_long = holdout_df_long.dropna(subset=["value"])
-    holdout_df_long = df_nan_to_none(holdout_df_long)
-    write_holdout_results(conn, holdout_df_long)
-
-    # upload mape results -----------------------------------
-    print(f"Publishing mape_results:{len(rolling_mape_df_long)} rows")
-    rolling_mape_df_long["period_date"] = pd.to_datetime(rolling_mape_df_long["period_date"]).dt.date
-    rolling_mape_df_long["run_id"] = registry_record["run_id"]
-    rolling_mape_df_long = rolling_mape_df_long.dropna(subset=["mape_value"])
-    rolling_mape_df_long = df_nan_to_none(rolling_mape_df_long)
-    write_mape_results(conn, rolling_mape_df_long)
 
     # upload tree -----------------------------------
     print(f"Publishing tree values:{len(df_tree,)} rows")
