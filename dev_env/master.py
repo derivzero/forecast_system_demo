@@ -250,136 +250,96 @@ if __name__ == "__main__":
         }
 
         conn = get_pg_connection()
-        cur = conn.cursor()
+cur = conn.cursor()
 
-        # --------------------------------------------------
-        # Guard: prevent duplicate run_id
-        # --------------------------------------------------
-        cur.execute(
-            "SELECT COUNT(*) FROM meta.forecast_registry WHERE run_id = %s",
-            (registry_record["run_id"],)
-        )
-        if cur.fetchone()[0] > 0:
-            conn.close()
-            raise RuntimeError(
-                f"Publish aborted: run_id already exists ({registry_record['run_id']})"
-            )
+# --------------------------------------------------
+# Guard: prevent duplicate run_id
+# --------------------------------------------------
+cur.execute(
+    "SELECT COUNT(*) FROM meta.forecast_registry WHERE run_id = %s",
+    (registry_record["run_id"],)
+)
+if cur.fetchone()[0] > 0:
+    conn.close()
+    raise RuntimeError(
+        f"Publish aborted: run_id already exists ({registry_record['run_id']})"
+    )
 
-        # ---------------------------------------------------------------------------------
-        # Publish meta row, forecast_results, both opt tables, and forecast distributions
-        # --------------------------------------------------------------------------------
-                
-        # upload rows to meta and registries ------------------------------------
-        print(f"Publishing row to meta")
-        write_forecast_registry(conn, registry_record)
+try:
+    # upload rows to meta and registries ------------------------------------
+    print(f"Publishing row to meta")
+    write_forecast_registry(conn, registry_record)
 
-        print(f"Publishing meta registry")
-        meta_registry_df = build_meta_registry(ALL_META, registry_record["run_id"], registry_record["publish_date"])
-        write_meta_registry(conn, meta_registry_df)
+    print(f"Publishing meta registry")
+    meta_registry_df = build_meta_registry(ALL_META, registry_record["run_id"], registry_record["publish_date"])
+    write_meta_registry(conn, meta_registry_df)
 
-        print(f"Publishing charts: {len(ALL_CHARTS)} images")
-        publish_charts(run_id=registry_record["run_id"], charts=ALL_CHARTS, chart_specs=CHART_SPECS, conn=conn)
+    print(f"Publishing charts: {len(ALL_CHARTS)} images")
+    publish_charts(run_id=registry_record["run_id"], charts=ALL_CHARTS, chart_specs=CHART_SPECS, conn=conn)
 
-        # Publish df wide -----------------------------------
-        print(f"Publishing df wide:{len(df_wide,)} rows")
+    # Publish df wide -----------------------------------
+    print(f"Publishing df wide:{len(df_wide,)} rows")
+    df_wide["period_date"] = pd.to_datetime(df_wide["period_date"]).dt.date
+    df_wide["run_id"] = registry_record["run_id"]
+    df_wide = df_nan_to_none(df_wide)
+    write_df_wide(conn, df_wide)
 
-        #1 convert to a date that PostgreSQL can read
-        df_wide["period_date"] = pd.to_datetime(df_wide["period_date"]).dt.date
+    # Publish dial values -----------------------------------
+    print(f"Publishing dial values:{len(dial_values_long,)} rows")
+    dial_values_long["run_id"] = registry_record["run_id"]
+    dial_values_long = df_nan_to_none(dial_values_long)
+    write_dial_values_long(conn, dial_values_long)
 
-        #2 insert run_id
-        df_wide["run_id"] = registry_record["run_id"]
-        
-        #3 convert NaNs to None
-        df_wide = df_nan_to_none(df_wide)
+    # Publish betas -----------------------------------
+    print(f"Publishing betas:{len(betas_df_long,)} rows")
+    betas_df_long["period_date"] = pd.to_datetime(betas_df_long["period_date"]).dt.date
+    betas_df_long["run_id"] = registry_record["run_id"]
+    betas_df_long = betas_df_long.dropna(subset=["beta_value"])
+    betas_df_long = df_nan_to_none(betas_df_long)
+    write_betas_df_long(conn, betas_df_long)
 
-        #4 write to PostgreSQL
-        write_df_wide(conn, df_wide)
+    # upload price grid -----------------------------------
+    print(f"Publishing price_grid_df:{len(price_grid_df)} rows")
+    write_optimization_df_results(conn=conn, price_grid_df=price_grid_df, run_id=registry_record["run_id"])
 
-        # Publish dial values -----------------------------------
-        print(f"Publishing dial values:{len(dial_values_long,)} rows")
+    # upload forecast distribution -----------------------------------
+    print(f"Publishing fcst_dist_df:{len(fcst_dist_df_long)} rows")
+    fcst_dist_df_long["run_id"] = registry_record["run_id"]
+    fcst_dist_df_long = fcst_dist_df_long.dropna(subset=["probability"])
+    fcst_dist_df_long = df_nan_to_none(fcst_dist_df_long)
+    write_fcst_distributions_results(conn=conn, fcst_dist_df=fcst_dist_df_long)
 
-        #1 insert run_id
-        dial_values_long["run_id"] = registry_record["run_id"]
-        
-        #2 convert NaNs to None
-        dial_values_long = df_nan_to_none(dial_values_long)
+    # upload holdout results -----------------------------------
+    print(f"Publishing holdout_results:{len(holdout_df_long)} rows")
+    holdout_df_long["period_date"] = pd.to_datetime(holdout_df_long["period_date"]).dt.date
+    holdout_df_long["run_id"] = registry_record["run_id"]
+    holdout_df_long = holdout_df_long.dropna(subset=["value"])
+    holdout_df_long = df_nan_to_none(holdout_df_long)
+    write_holdout_results(conn, holdout_df_long)
 
-        #3 write to PostgreSQL
-        write_dial_values_long(conn, dial_values_long)
-        
-        # Publish betas -----------------------------------
-        print(f"Publishing betas:{len(betas_df_long,)} rows")
+    # upload mape results -----------------------------------
+    print(f"Publishing mape_results:{len(rolling_mape_df_long)} rows")
+    rolling_mape_df_long["period_date"] = pd.to_datetime(rolling_mape_df_long["period_date"]).dt.date
+    rolling_mape_df_long["run_id"] = registry_record["run_id"]
+    rolling_mape_df_long = rolling_mape_df_long.dropna(subset=["mape_value"])
+    rolling_mape_df_long = df_nan_to_none(rolling_mape_df_long)
+    write_mape_results(conn, rolling_mape_df_long)
 
-        #1 convert to a date that PostgreSQL can read
-        betas_df_long["period_date"] = pd.to_datetime(betas_df_long["period_date"]).dt.date
-        
-        #2 insert run_id
-        betas_df_long["run_id"] = registry_record["run_id"]
-        betas_df_long = betas_df_long.dropna(subset=["beta_value"])
-        
-        #3 convert NaNs to None
-        betas_df_long = df_nan_to_none(betas_df_long)
-        
-        #4 write to PostgreSQL
-        write_betas_df_long(conn, betas_df_long)
-        
-        # upload price grid -----------------------------------
-        print(f"Publishing price_grid_df:{len(price_grid_df)} rows")
+    # upload tree -----------------------------------
+    print(f"Publishing tree values:{len(df_tree,)} rows")
+    df_tree["run_id"] = registry_record["run_id"]
+    write_tree(conn, df_tree)
 
-        write_optimization_df_results(conn=conn, price_grid_df=price_grid_df, run_id=registry_record["run_id"])
+    # --------------------------------------------------
+    # Commit everything at once
+    # --------------------------------------------------
+    conn.commit()
+    print("Publish complete — all data committed successfully.")
 
-        # upload forecast distribution -----------------------------------
-        print(f"Publishing fcst_dist_df:{len(fcst_dist_df_long)} rows")
-        
-        #1 insert run_id
-        fcst_dist_df_long["run_id"] = registry_record["run_id"]
-        fcst_dist_df_long = fcst_dist_df_long.dropna(subset=["probability"])
+except Exception as e:
+    conn.rollback()
+    print(f"Publish failed — all changes rolled back. Error: {e}")
+    raise e
 
-        #2 convert NaNs to None
-        fcst_dist_df_long = df_nan_to_none(fcst_dist_df_long)
-
-        #3 write to PostgreSQL
-        write_fcst_distributions_results(conn=conn, fcst_dist_df=fcst_dist_df_long)
-        
-        # upload holdout results -----------------------------------
-        print(f"Publishing holdout_results:{len(holdout_df_long)} rows")
-      
-        #1 convert to a date that PostgreSQL can read
-        holdout_df_long["period_date"] = pd.to_datetime(holdout_df_long["period_date"]).dt.date
-        
-        #2 insert run_id
-        holdout_df_long["run_id"] = registry_record["run_id"]
-        holdout_df_long = holdout_df_long.dropna(subset=["value"])
-        
-        #3 convert NaNs to None
-        holdout_df_long = df_nan_to_none(holdout_df_long)
-        
-        #4 write to PostgreSQL
-        write_holdout_results(conn, holdout_df_long)
-
-        # upload mape results -----------------------------------
-        print(f"Publishing mape_results:{len(rolling_mape_df_long)} rows")
-        
-        #1 convert to a date that PostgreSQL can read
-        rolling_mape_df_long["period_date"] = pd.to_datetime(rolling_mape_df_long["period_date"]).dt.date
-        
-        #2 insert run_id
-        rolling_mape_df_long["run_id"] = registry_record["run_id"]
-        rolling_mape_df_long = rolling_mape_df_long.dropna(subset=["mape_value"])
-
-        #3 convert NaNs to None
-        rolling_mape_df_long = df_nan_to_none(rolling_mape_df_long)
-
-        #4 write to PostgreSQL
-        write_mape_results(conn, rolling_mape_df_long)
-
-        # upload tree -----------------------------------
-        print(f"Publishing tree values:{len(df_tree,)} rows")
-
-        #1 insert run_id
-        df_tree["run_id"] = registry_record["run_id"]
-        
-        #2 write to PostgreSQL
-        write_tree(conn, df_tree)
-                       
-        conn.close()
+finally:
+    conn.close()

@@ -116,7 +116,7 @@ def publish_charts(run_id, charts, chart_specs, conn, batch_size=10):
             ))
 
         cur.executemany(sql, rows)
-        conn.commit()
+        conn.commit()    # ← remove this line
         gc.collect()
         print(f"Published charts {i+1} to {min(i+batch_size, len(chart_items))} of {len(chart_items)}")
 
@@ -151,7 +151,6 @@ def write_forecast_registry(conn, record: dict):
 
     cur = conn.cursor()
     cur.execute(sql, params)
-    conn.commit()
 
 
 def write_meta_registry(conn, df):
@@ -181,8 +180,6 @@ def write_meta_registry(conn, df):
 
     cur = conn.cursor()
     cur.executemany(sql, rows)
-    conn.commit()
-    cur.close()
 
 
 # ----------------------------------------------
@@ -212,7 +209,7 @@ def write_df_wide(conn, df_wide):
 
     cur = conn.cursor()
     cur.executemany(sql, data)
-    conn.commit()
+
 
 
 def write_dial_values_long(conn, dial_values_long):
@@ -243,7 +240,6 @@ def write_dial_values_long(conn, dial_values_long):
 
     cur = conn.cursor()
     cur.executemany(sql, rows)
-    conn.commit()
 
 
 def write_tree(conn, df_tree):
@@ -280,7 +276,6 @@ def write_tree(conn, df_tree):
 
     cur = conn.cursor()
     cur.executemany(sql, rows)
-    conn.commit()
 
 
 def write_holdout_results(conn, holdout_df_all):
@@ -313,7 +308,6 @@ def write_holdout_results(conn, holdout_df_all):
 
     cur = conn.cursor()
     cur.executemany(sql, rows)
-    conn.commit()
 
 
 def write_mape_results(conn, rolling_mape_all):
@@ -344,7 +338,6 @@ def write_mape_results(conn, rolling_mape_all):
 
     cur = conn.cursor()
     cur.executemany(sql, rows)
-    conn.commit()
 
 
 def write_optimization_df_results(conn, price_grid_df, run_id):
@@ -362,7 +355,6 @@ def write_optimization_df_results(conn, price_grid_df, run_id):
 
     cur = conn.cursor()
     cur.executemany(sql, rows)
-    conn.commit()
 
 
 def write_fcst_distributions_results(conn, fcst_dist_df):
@@ -399,7 +391,6 @@ def write_fcst_distributions_results(conn, fcst_dist_df):
 
     cur = conn.cursor()
     cur.executemany(sql, rows)
-    conn.commit()
 
 
 def write_betas_df_long(conn, betas_df_long):
@@ -432,4 +423,3 @@ def write_betas_df_long(conn, betas_df_long):
 
     cur = conn.cursor()
     cur.executemany(sql, rows)
-    conn.commit()
