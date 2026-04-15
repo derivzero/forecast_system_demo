@@ -24,7 +24,7 @@ def create_external_datasets():
     #fred_dataset.to_csv("fred.csv")
     
     # fetch forward dataset
-    forward_path = Path(PROJECT_ROOT) / "data" / "shared" / "forward_values.csv"
+    forward_path = Path(PROJECT_ROOT) / "data" / "shared" / f"forward_values_{cfg_run.forecast_month}.csv"
     forward_dataset = pd.read_csv(forward_path)
     forward_dataset['date'] = pd.to_datetime(forward_dataset['date'], format="%m/%d/%Y")
     forward_dataset = forward_dataset.reset_index()

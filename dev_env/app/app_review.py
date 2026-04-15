@@ -49,7 +49,7 @@ import importlib.util
 def load_artifacts():
     return build_artifacts()
 
-df, _, _, _, _, _, price_grid_df, _, ALL_CHARTS, ALL_META = load_artifacts()
+df, _, price_grid_df, _, ALL_CHARTS, ALL_META = load_artifacts()
 
 df["period_date"] = pd.to_datetime(df["period_date"])
 df = df.set_index("period_date").sort_index()

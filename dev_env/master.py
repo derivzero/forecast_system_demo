@@ -25,11 +25,7 @@ from py_files.pg_upload_helpers import (
     write_forecast_registry,
     write_df_wide,
     write_dial_values_long,
-    write_holdout_results,
-    write_mape_results,
     write_optimization_df_results,
-    write_fcst_distributions_results,
-    write_betas_df_long,
     write_meta_registry,
     write_tree
 )
@@ -202,7 +198,7 @@ def build_artifacts():
     # from charts
     ALL_CHARTS.update(charts_out["charts"])
     
-    return df_wide, dial_values_long, holdout_df_long, betas_df_long, fcst_dist_df_long, rolling_mape_df_long, price_grid_df, df_tree, ALL_CHARTS, ALL_META
+    return df_wide, dial_values_long, price_grid_df, df_tree, ALL_CHARTS, ALL_META
 
 # ============================================================
 
@@ -212,7 +208,7 @@ if __name__ == "__main__":
     # Preview and forecast validation 
     # --------------------------------------------------------
 
-    df_wide, dial_values_long, holdout_df_long, betas_df_long, fcst_dist_df_long, rolling_mape_df_long, price_grid_df, df_tree, ALL_CHARTS, ALL_META  = build_artifacts()
+    df_wide, dial_values_long, price_grid_df, df_tree, ALL_CHARTS, ALL_META  = build_artifacts()
 
     # META Content ------------------------------------------
     print("\n=== ALL_META INVENTORY ===")
@@ -240,7 +236,7 @@ if __name__ == "__main__":
     if PUBLISH:
         publish_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         registry_record = {
-            "run_id": "2025_01.0",
+            "run_id": cfg_run.run_id,
             "publish_date": publish_ts,
             "status": "published",
             "code_version": "V0",
@@ -250,65 +246,65 @@ if __name__ == "__main__":
         }
 
         conn = get_pg_connection()
-cur = conn.cursor()
+        cur = conn.cursor()
 
-# --------------------------------------------------
-# Guard: prevent duplicate run_id
-# --------------------------------------------------
-cur.execute(
-    "SELECT COUNT(*) FROM meta.forecast_registry WHERE run_id = %s",
-    (registry_record["run_id"],)
-)
-if cur.fetchone()[0] > 0:
-    conn.close()
-    raise RuntimeError(
-        f"Publish aborted: run_id already exists ({registry_record['run_id']})"
-    )
+        # --------------------------------------------------
+        # Guard: prevent duplicate run_id
+        # --------------------------------------------------
+        cur.execute(
+            "SELECT COUNT(*) FROM meta.forecast_registry WHERE run_id = %s",
+            (registry_record["run_id"],)
+        )
+        if cur.fetchone()[0] > 0:
+            conn.close()
+            raise RuntimeError(
+                f"Publish aborted: run_id already exists ({registry_record['run_id']})"
+            )
 
-try:
-    # upload rows to meta and registries ------------------------------------
-    print(f"Publishing row to meta")
-    write_forecast_registry(conn, registry_record)
+        try:
+            # upload rows to meta and registries ------------------------------------
+            print(f"Publishing row to meta")
+            write_forecast_registry(conn, registry_record)
 
-    print(f"Publishing meta registry")
-    meta_registry_df = build_meta_registry(ALL_META, registry_record["run_id"], registry_record["publish_date"])
-    write_meta_registry(conn, meta_registry_df)
+            print(f"Publishing meta registry")
+            meta_registry_df = build_meta_registry(ALL_META, registry_record["run_id"], registry_record["publish_date"])
+            write_meta_registry(conn, meta_registry_df)
 
-    print(f"Publishing charts: {len(ALL_CHARTS)} images")
-    publish_charts(run_id=registry_record["run_id"], charts=ALL_CHARTS, chart_specs=CHART_SPECS, conn=conn)
+            print(f"Publishing charts: {len(ALL_CHARTS)} images")
+            publish_charts(run_id=registry_record["run_id"], charts=ALL_CHARTS, chart_specs=CHART_SPECS, conn=conn)
 
-    # Publish df wide -----------------------------------
-    print(f"Publishing df wide:{len(df_wide,)} rows")
-    df_wide["period_date"] = pd.to_datetime(df_wide["period_date"]).dt.date
-    df_wide["run_id"] = registry_record["run_id"]
-    df_wide = df_nan_to_none(df_wide)
-    write_df_wide(conn, df_wide)
+            # Publish df wide -----------------------------------
+            print(f"Publishing df wide:{len(df_wide,)} rows")
+            df_wide["period_date"] = pd.to_datetime(df_wide["period_date"]).dt.date
+            df_wide["run_id"] = registry_record["run_id"]
+            df_wide = df_nan_to_none(df_wide)
+            write_df_wide(conn, df_wide)
 
-    # Publish dial values -----------------------------------
-    print(f"Publishing dial values:{len(dial_values_long,)} rows")
-    dial_values_long["run_id"] = registry_record["run_id"]
-    dial_values_long = df_nan_to_none(dial_values_long)
-    write_dial_values_long(conn, dial_values_long)
+            # Publish dial values -----------------------------------
+            print(f"Publishing dial values:{len(dial_values_long,)} rows")
+            dial_values_long["run_id"] = registry_record["run_id"]
+            dial_values_long = df_nan_to_none(dial_values_long)
+            write_dial_values_long(conn, dial_values_long)
 
-    # upload price grid -----------------------------------
-    print(f"Publishing price_grid_df:{len(price_grid_df)} rows")
-    write_optimization_df_results(conn=conn, price_grid_df=price_grid_df, run_id=registry_record["run_id"])
+            # upload price grid -----------------------------------
+            print(f"Publishing price_grid_df:{len(price_grid_df)} rows")
+            write_optimization_df_results(conn=conn, price_grid_df=price_grid_df, run_id=registry_record["run_id"])
 
-    # upload tree -----------------------------------
-    print(f"Publishing tree values:{len(df_tree,)} rows")
-    df_tree["run_id"] = registry_record["run_id"]
-    write_tree(conn, df_tree)
+            # upload tree -----------------------------------
+            print(f"Publishing tree values:{len(df_tree,)} rows")
+            df_tree["run_id"] = registry_record["run_id"]
+            write_tree(conn, df_tree)
 
-    # --------------------------------------------------
-    # Commit everything at once
-    # --------------------------------------------------
-    conn.commit()
-    print("Publish complete — all data committed successfully.")
+            # --------------------------------------------------
+            # Commit everything at once
+            # --------------------------------------------------
+            conn.commit()
+            print("Publish complete — all data committed successfully.")
 
-except Exception as e:
-    conn.rollback()
-    print(f"Publish failed — all changes rolled back. Error: {e}")
-    raise e
+        except Exception as e:
+            conn.rollback()
+            print(f"Publish failed — all changes rolled back. Error: {e}")
+            raise e
 
-finally:
-    conn.close()
+        finally:
+            conn.close()

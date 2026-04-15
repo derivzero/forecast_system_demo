@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, date
 import pandas as pd
+from dateutil.relativedelta import relativedelta
 
 @dataclass
 class PublishRecord:
@@ -17,23 +18,25 @@ class RunConfig:
     # --------------------------------------------------
     # Data windows (ISO date strings, parsed later)
     # --------------------------------------------------
-    forecast_month: str = "2025_01"
+    run_id: str = "2026_01.0"
+    
+    forecast_month: str = "2026-01-01"
     
     min_date: str = "2014-01-01"
 
     # Holdout training / test split
-    start_train_h: str = "2014-01-01"
-    end_train_h: str   = "2023-12-01"  # year before end_train
-    start_test_h: str  = "2024-01-01"  # year before start_fcst
-    end_test_h: str    = "2024-12-01"  # same as end_train
+    start_train_h: str = field(init=False, default="")
+    end_train_h: str   = field(init=False, default="")
+    start_test_h: str  = field(init=False, default="")
+    end_test_h: str    = field(init=False, default="")
 
     # Full training window
-    start_train: str = "2014-01-01"
-    end_train: str   = "2024-12-01"
+    start_train: str = field(init=False, default="")
+    end_train: str   = field(init=False, default="")
 
     # Forecast window
-    start_fcst: str = "2025-01-01"
-    end_fcst: str   = "2025-06-01"
+    start_fcst: str = field(init=False, default="")
+    end_fcst: str   = field(init=False, default="")
 
     # --------------------------------------------------
     # Chart horizons (years back from forecast end)
@@ -44,21 +47,23 @@ class RunConfig:
     beta_chart_years: int    = 8
     long_run_chart_years: int = 9
 
-
     def __post_init__(self):
-        # Convert ISO date strings to pandas Timestamps (one time, at creation)
-        self.min_date      = pd.to_datetime(self.min_date)
-
-        self.start_train_h = pd.to_datetime(self.start_train_h)
-        self.end_train_h   = pd.to_datetime(self.end_train_h)
-        self.start_test_h  = pd.to_datetime(self.start_test_h)
-        self.end_test_h    = pd.to_datetime(self.end_test_h)
-
-        self.start_train   = pd.to_datetime(self.start_train)
-        self.end_train     = pd.to_datetime(self.end_train)
-
-        self.start_fcst    = pd.to_datetime(self.start_fcst)
-        self.end_fcst      = pd.to_datetime(self.end_fcst)
+        
+        # Create relative dates
+        forecast_month = pd.to_datetime(self.forecast_month)
+        min_date = pd.to_datetime(self.min_date)
+        
+        self.start_fcst   = forecast_month
+        self.end_fcst     = forecast_month + relativedelta(months=5)
+        
+        self.start_train   = min_date
+        self.end_train    = self.start_fcst - relativedelta(months=1)
+                
+        self.start_train_h = min_date
+        self.end_train_h  = self.end_train - relativedelta(months=12)
+        
+        self.start_test_h = forecast_month - relativedelta(months=12)
+        self.end_test_h   = self.end_train
 
 # single shared instance (simple import pattern everywhere)
 RUN_CONFIG = RunConfig()
