@@ -592,12 +592,12 @@ elif tab == "Market Charts TTM":
     # Load TTM YOY dials from Snowflake
     # ----------------------------------------
     
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('cpi_fah', 'units_mkt_trend', 'sales_mkt_trend')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
@@ -637,22 +637,22 @@ elif tab == "CPI FAH Forecast":
     st.header("CPI Food-at-Home")
 
     # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('cpi_fah', 'oil_prices_lag7', 'ppi_farm_products_lag4', 'ppi_food_mfg_lag3', 'ppi_grocery')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'cpi_fah'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id, 'cpi_fah'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -745,22 +745,22 @@ elif tab == "US Units Forecast":
     st.header("US Units")
 
     # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('units_mkt_trend', 'avg_price_trend', 'rdi', 'home_price')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'units_mkt_trend'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id, 'units_mkt_trend'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -846,22 +846,22 @@ elif tab == "US Sales Forecast":
     st.header("US Sales")
     
  # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('sales_mkt_trend', 'units_mkt_trend', 'avg_price_trend')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'sales_mkt_trend'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id, 'sales_mkt_trend'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -917,12 +917,12 @@ elif tab == "US Sales Forecast":
 # TAB 5 - KPI Snapshot
 # ----------------------------------------------------------------------------------------
 elif tab == "KPI Snapshot TTM":
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('units', 'avg_price', 'avg_cost', 'sales', 'cogs', 'gm')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
@@ -1000,11 +1000,11 @@ elif tab == "KPI Tree TTM":
     # -------------------------------------------------
     # Pull pre-aggregated KPI snapshot from Snowflake
     # -------------------------------------------------
-    df_tree = query_pg(f"""
+    df_tree = query_pg("""
     SELECT *
     FROM output.v_tree_ttm
-    WHERE run_id = '{run_id}'
-    """)
+    WHERE run_id = %s
+    """, (run_id,))
 
     df_tree = df_tree.set_index("var")
 
@@ -1095,22 +1095,22 @@ elif tab == "Unit Forecast":
     st.header("Retailer Units")
     
     # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('units', 'avg_price', 'rdi', 'home_price')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'units'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id, 'units'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -1195,22 +1195,22 @@ elif tab == "Sales Forecast":
     st.header("Retailer Sales")
     
     # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('sales', 'units', 'avg_price')
-    """)
+    """, (run_id))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'sales'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id, 'sales'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -1270,22 +1270,22 @@ elif tab == "Visit Forecast":
     st.header("Retailer Visits")
     
     # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('visits', 'avg_price', 'units')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'visits'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id, 'visits'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -1364,22 +1364,22 @@ elif tab == "UPV Forecast":
     st.header("Retailer Units per Visit")
     
     # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('upv', 'units', 'visits')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'upv'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id,'upv'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -1439,22 +1439,22 @@ elif tab == "Average Cost Forecast":
     st.header("Retailer Average Cost")
     
     # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('avg_cost', 'ppi_food_mfg_lag2', 'ppi_food_mfg_lag3', 'ppi_food_mfg_lag4')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'avg_cost'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id,'avg_cost'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -1540,22 +1540,22 @@ elif tab == "COGS Forecast":
     st.header("Retailer Cost of Goods Sold")
     
     # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('cogs', 'avg_cost', 'units')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'cogs'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id,'cogs'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -1616,22 +1616,22 @@ elif tab == "Total Cost Forecast":
     st.header("Retailer Total Cost")
     
     # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('total_cost', 'cogs', 'fixed_cost')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'total_cost'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id,'total_cost'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -1691,22 +1691,22 @@ elif tab == "Gross Margin Forecast":
     st.header("Retailer Gross Margin")
     
     # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('gm', 'sales', 'cogs')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'gm'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id,'gm'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -1767,22 +1767,22 @@ elif tab == "Net Income Forecast":
     st.header("Retailer Net Income")
     
         # Dial Views TTM --------------------------------------
-    dials_ttm = query_pg(f"""
+    dials_ttm = query_pg("""
         SELECT var, value
         FROM output.v_dial_ttm_yoy
-        WHERE run_id = '{run_id}'
+        WHERE run_id = %s
           AND var IN ('net_income', 'sales', 'total_cost')
-    """)
+    """, (run_id,))
 
     dials_ttm.columns = [c.lower() for c in dials_ttm.columns]
     dials_ttm = dict(zip(dials_ttm["var"], dials_ttm["value"]))
 
     # Dial Views Forward ----------------------------------
-    dials_forward = query_pg(f"""
+    dials_forward = query_pg("""
         SELECT var, value
         FROM output.v_dial_forecast_yoy
-        WHERE run_id = '{run_id}' AND var = 'net_income'
-    """)
+        WHERE run_id = %s AND var = %s
+    """, (run_id,'net_income'))
 
     dials_forward.columns = [c.lower() for c in dials_forward.columns]
     dials_forward = dict(zip(dials_forward["var"], dials_forward["value"]))
@@ -1848,11 +1848,11 @@ elif tab == "KPI Tree Forecast":
     # -------------------------------------------------
     # Pull pre-aggregated KPI snapshot from Snowflake
     # -------------------------------------------------
-    df_tree = query_pg(f"""
+    df_tree = query_pg("""
     SELECT *
     FROM output.v_tree_fcst
-    WHERE run_id = '{run_id}'
-    """)
+    WHERE run_id = %s
+    """, (run_id,))
 
     df_tree = df_tree.set_index("var")
 
