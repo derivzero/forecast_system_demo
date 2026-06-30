@@ -22,7 +22,7 @@ class RunConfig:
     
     forecast_month: str = "2026-01-01"
     
-    min_date: str = "2014-01-01"
+    min_date: str = "2014-03-01"
 
     # Holdout training / test split
     start_train_h: str = field(init=False, default="")
