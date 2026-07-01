@@ -2000,8 +2000,7 @@ elif tab == "Financial Simulator":
 
     # --- price range -----
     st.divider()
-    st.subheader("Min and Max Price Range: 6-month Outlook")
-    st.markdown("##### Min Price: Sales Break Even and Max Price: Units Break Even", unsafe_allow_html=True)
+    st.subheader("Sales and Unit Break Even: 6-month Outlook")
     
     left, r3c1, right = st.columns([0.1, 1, 0.1])
     with r3c1:
@@ -2066,10 +2065,18 @@ elif tab == "Financial Simulator":
     yoy_avg_cost  = (ty_avg_cost  / ly_avg_cost  - 1) * 100
 
     # --- Slider setup ---
-    min_price = ALL_META["min_price"]
-    max_price = ALL_META["max_price"]
-    max_price = max(max_price, ty_avg_price)
-    price_dollar_init = float(np.clip(ALL_META["expected_price_6m"], min_price, max_price))
+    sales_breakeven_price = ALL_META["sales_breakeven_price"]
+    units_breakeven_price = ALL_META["units_breakeven_price"]
+
+    # Pad the lower breakeven down 20%, the higher one up 20% (either may be higher)
+    bottom = min(sales_breakeven_price, units_breakeven_price) * 0.8
+    top    = max(sales_breakeven_price, units_breakeven_price) * 1.2
+
+    # Keep the current price inside the slider range
+    top    = max(top, ty_avg_price)
+    bottom = min(bottom, ty_avg_price)
+
+    price_dollar_init = float(np.clip(ALL_META["expected_price_6m"], bottom, top))
 
     # --- Helper: slider with zero tick ---
     def _fmt_zero(fmt: str) -> str:
@@ -2104,10 +2111,10 @@ elif tab == "Financial Simulator":
     c1, g1, c2, g2, c3 = st.columns([1, 0.75, .8, 0.75, .8])
 
     with c1:
-        if min_price == max_price:
+        if bottom == top:
             price_dollar = st.number_input(
                 "Scenario Price",
-                value=float(min_price),
+                value=float(bottom),
                 step=0.01,
                 format="%.2f",
                 help="Pricing corridor collapsed to a single feasible price."
@@ -2115,8 +2122,8 @@ elif tab == "Financial Simulator":
         else:
             price_dollar = st.slider(
                 "Avg Price ($)",
-                min_value=float(min_price),
-                max_value=float(max_price),
+                min_value=float(bottom),
+                max_value=float(top),
                 value=price_dollar_init,
                 step=0.01,
                 format="$%.2f",

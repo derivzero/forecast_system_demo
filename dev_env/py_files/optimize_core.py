@@ -36,65 +36,57 @@ def run_optimization(df, cfg_units, kf_results_units, elasticities):
     assert E_cat <= 0, "E_cat should be non-positive"
     
     # -------------------------------------------------------------------
-    # Revenue and Price: Minimum Price
+    # Sales Break Even
     # -------------------------------------------------------------------
 
     df_fcst = df.loc[cfg_run.start_fcst: cfg_run.end_fcst]
     exp_price = round(df_fcst['sales'].sum() / df_fcst['units'].sum(), 2)
 
     meta["expected_price_6m"] = float(exp_price)
-    
+
     fcst_idx = df.loc[cfg_run.start_fcst : cfg_run.end_fcst].index
     ly_idx = fcst_idx - pd.DateOffset(months=12)
     sales_ly = df.loc[ly_idx, 'sales'].sum()
 
-    # find avg_price where gap between forecasted units and ly units is the smallest. This is the max avg_price if units are expected to be flat or better
+    # find avg_price where projected sales are closest to last year's sales (sales break even)
     diff = (price_grid_df['units'] * price_grid_df['avg_price'] - sales_ly).abs()
-    i = diff.idxmin()                    
+    i = diff.idxmin()
     closest_row   = price_grid_df.loc[i]
-    min_price = float(closest_row['avg_price'])
+    sales_breakeven_price = float(closest_row['avg_price'])
 
-    # Save max_price to memory
-    meta["min_price"] = min_price
+    meta["sales_breakeven_price"] = sales_breakeven_price
 
     price_grid_df["sales"] = price_grid_df["avg_price"] * price_grid_df["units"]
-    fig = plot_price_curve(df=price_grid_df, exp_price=exp_price, opt_price=min_price, var='sales', title="Sales Break Even")
+    fig = plot_price_curve(df=price_grid_df, exp_price=exp_price, opt_price=sales_breakeven_price, var='sales', title="Sales Break Even")
     charts["sales_price_min"] = fig
     plt.close(fig)
 
     # -------------------------------------------------------------------
-    # Unit Break Even: Maximum Price
+    # Units Break Even
     # -------------------------------------------------------------------
 
-    # Define indices ---------------------------------------------
+    # Define indices
     fcst_idx = df.loc[cfg_run.start_fcst : cfg_run.end_fcst].index
     ly_idx = fcst_idx - pd.DateOffset(months=12)
-    
+
     # Define forecast values from last year for the unit break even
     units_ly = df.loc[ly_idx, 'units'].sum()
-    
-    # find avg_price where gap between forecasted units and ly units is the smallest. This is the max avg_price if units are expected to be flat or better
-    diff = (price_grid_df['units'] - units_ly).abs()
-    i = diff.idxmin()                    
-    closest_row   = price_grid_df.loc[i]
-    max_price = float(closest_row['avg_price'])
 
-    # Save max_price to memory
-    meta["max_price"] = max_price
-    
-    fig = plot_units_vs_price(df=price_grid_df, exp_price=exp_price, units_opt_price=max_price, title="Units Break Even")
+    # find avg_price where projected units are closest to last year's units (units break even)
+    diff = (price_grid_df['units'] - units_ly).abs()
+    i = diff.idxmin()
+    closest_row   = price_grid_df.loc[i]
+    units_breakeven_price = float(closest_row['avg_price'])
+
+    meta["units_breakeven_price"] = units_breakeven_price
+
+    fig = plot_units_vs_price(df=price_grid_df, exp_price=exp_price, units_opt_price=units_breakeven_price, title="Units Break Even")
     charts["units_price_max"] = fig
     plt.close(fig)
 
-    fig = plot_price_range(min_price, max_price, exp_price)
+    fig = plot_price_range(sales_breakeven_price, units_breakeven_price, exp_price)
     charts["price_range"] = fig
     plt.close(fig)
-
-    table_min = float(price_grid_df["avg_price"].min())
-    table_max = float(price_grid_df["avg_price"].max())
-
-    min_price = float(np.clip(min_price, table_min, table_max))
-    max_price = float(np.clip(max_price, table_min, table_max))
 
     # Show long run charts ---------------------------------------------
     start_date  = cfg_run.end_train - pd.DateOffset(years=cfg_run.long_run_chart_years)  
@@ -133,8 +125,8 @@ def run_optimization(df, cfg_units, kf_results_units, elasticities):
     "baseline_price": baseline_price,
     "baseline_units": baseline_units,
     "elasticity_mid": float(E_rel),
-    "min_price": float(min_price),
-    "max_price": float(max_price),
+    "sales_breakeven_price": float(sales_breakeven_price),
+    "units_breakeven_price": float(units_breakeven_price),
     "units_last_year": float(units_ly),
 }
     return {

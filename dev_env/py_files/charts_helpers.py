@@ -415,23 +415,23 @@ def plot_price_range(min_price, max_price, exp_price):
     max_price = round(max_price, 2)
     exp_price = round(exp_price, 2)
 
-    line_start = min(min_price, exp_price)
-    line_end = max(max_price, exp_price)
+    # Order the two breakevens (either may be higher)
+    lo_be = min(min_price, max_price)
+    hi_be = max(min_price, max_price)
 
-    padding = (max_price - min_price) * 0.1
-    ax_min = line_start - padding
-    ax_max = line_end + padding
-     
+    # Axis extends 20% beyond each breakeven; also keep exp_price in view
+    ax_min = min(lo_be * 0.99, exp_price + 0.01)
+    ax_max = max(hi_be * 1.01, exp_price + 0.01)
+
     fig, ax = plt.subplots(figsize=(8, 2))
- 
+
     ax.plot([ax_min, ax_max], [0, 0], color="gray", linewidth=2)
     ax.scatter([min_price, max_price, exp_price], [0, 0, 0], color=["blue", "blue", "red"], s=100, zorder=3)
- 
-    ax.text(min_price, 0.01, f"Minimum Price\n${min_price:.2f}", ha="center", va="bottom", fontsize=9)
-    ax.text(max_price, 0.01, f"Maximum Price\n${max_price:.2f}", ha="center", va="bottom", fontsize=9)
+
+    ax.text(min_price, 0.01, f"Sales Break Even\n${min_price:.2f}", ha="center", va="bottom", fontsize=9)
+    ax.text(max_price, 0.01, f"Units Break Even\n${max_price:.2f}", ha="center", va="bottom", fontsize=9)
     ax.text(exp_price, -0.01, f"Expected Price\n${exp_price:.2f}", ha="center", va="top", fontsize=9)
 
-    #ax.set_title("Price Range")
     ax.set_xlim(ax_min, ax_max)
     ax.axis("off")
     plt.tight_layout()
