@@ -8,5 +8,5 @@ VALUES
   ('viewer1@example.com', 'viewer', TRUE, 'user'),
   ('viewer2@example.com', 'viewer', TRUE, 'user'),
   ('viewer3@example.com', 'viewer', TRUE, 'user')
-  ('fredfarmlerrlk@gmail.com', 'viewer', TRUE, 'user')
+  ('viewer4@example.com', 'viewer', TRUE, 'user')
 ON CONFLICT (email) DO NOTHING;
