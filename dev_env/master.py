@@ -9,6 +9,9 @@ from pathlib import Path
 from datetime import datetime, date, timezone
 from pandas.tseries.offsets import DateOffset
 
+from data.api.FRED_API import fetch_fred_data
+from data.api.fetch_fred_monthly import refresh_fred_data
+
 from py_files.dataset import create_dataset
 from py_files.forecast_core import run_kalman_model
 from py_files.forecast_downstream import run_downstream
@@ -46,6 +49,14 @@ def build_artifacts():
     Safe to call from Streamlit.
     """
 
+    answer = input("Pull fresh data from the FRED API? (y/n): ").strip().lower()
+
+    if answer in ("y", "yes"):
+        print("Refreshing FRED data from API...")
+        refresh_fred_data()
+    else:
+        print("Skipping FRED API refresh — using existing data.")
+    
     # ----------------------------
     # 0. External datasets
     # ----------------------------

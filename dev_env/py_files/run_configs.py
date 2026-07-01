@@ -18,9 +18,9 @@ class RunConfig:
     # --------------------------------------------------
     # Data windows (ISO date strings, parsed later)
     # --------------------------------------------------
-    run_id: str = "2026_01.0"
+    run_id: str = "2026_04.0"
     
-    forecast_month: str = "2026-01-01"
+    forecast_month: str = "2026-04-01"
     
     min_date: str = "2014-03-01"
 

@@ -1,6 +1,7 @@
 from datetime import datetime
 import requests
 import pandas as pd
+import os
 
 def fetch_fred_data(start_date="2000-01-01", end_date=None, api_key_path=None):
 
@@ -26,11 +27,9 @@ def fetch_fred_data(start_date="2000-01-01", end_date=None, api_key_path=None):
     }
 
     # Read API key -------------------------------------------------------------
-    try:
-        with open(api_key_path, "r") as file:
-            API_KEY = file.read().strip()
-    except FileNotFoundError:
-        raise RuntimeError("FRED API key file not found. Aborting.")
+    API_KEY = os.environ.get("FRED_API_KEY")
+    if not API_KEY:
+        raise RuntimeError("FRED_API_KEY not found in environment. Aborting.")
 
     df_list = []
 
