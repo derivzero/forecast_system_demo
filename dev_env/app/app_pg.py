@@ -4,7 +4,6 @@
 
 import streamlit as st
 import os
-import requests
 from dotenv import load_dotenv
 
 #load_dotenv()
@@ -18,50 +17,6 @@ st.set_page_config(page_title="Grocery Dashboard", layout="wide")
 import time
 SCRIPT_START = time.time()
 
-
-# ----------------------------------------
-# Load OAuth
-# ----------------------------------------
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
-
-AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-TOKEN_URL = "https://oauth2.googleapis.com/token"
-USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
-
-def auth_login_link():
-    params = {
-        "client_id": GOOGLE_CLIENT_ID,
-        "response_type": "code",
-        "scope": "openid email profile",
-        "redirect_uri": GOOGLE_REDIRECT_URI,
-        "access_type": "offline",
-        "prompt": "consent",
-    }
-
-    print(f"DEBUG redirect_uri: {GOOGLE_REDIRECT_URI}")
-    request_url = requests.Request("GET", AUTH_URL, params=params).prepare().url
-    st.markdown(f"[Login with Google]({request_url})")
-
-
-def exchange_code_for_user(code):
-    data = {
-        "code": code,
-        "client_id": GOOGLE_CLIENT_ID,
-        "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
-        "grant_type": "authorization_code",
-    }
-
-    token_response = requests.post(TOKEN_URL, data=data)
-    token_json = token_response.json()
-
-    access_token = token_json.get("access_token")
-
-    userinfo_response = requests.get(USERINFO_URL, headers={"Authorization": f"Bearer {access_token}"})
-
-    return userinfo_response.json()
 
 # --------------------------------------
 # Tell Python where the project root is
@@ -113,43 +68,8 @@ def query_pg(sql: str, params: tuple | None = None) -> pd.DataFrame:
             pass
 
 # --------------------------------------
-# Authentication and Authorization
+# Open access - public demo, no authentication gate
 # --------------------------------------
-qp = st.query_params
-
-if "user" not in st.session_state:
-    if "code" not in qp:
-        st.image("app/tab0/dz_logo.jpg", width=200)
-        #st.title("derivzero")
-        auth_login_link()
-        st.stop()
-    else:
-        st.session_state["user"] = exchange_code_for_user(qp["code"])
-        st.query_params.clear()
-        st.rerun()
-
-if "user" not in st.session_state:
-    st.stop()
-
-email = st.session_state["user"].get("email", "").lower()
-
-
-# Authorization Gate
-access_df = query_pg("""
-    SELECT role, is_active
-    FROM security.users_access
-    WHERE LOWER(email) = %s
-""", (email,))
-
-if access_df.empty:
-    st.error("Access denied.")
-    st.stop()
-
-is_active = bool(access_df.iloc[0]["is_active"])
-
-if not is_active:
-    st.error("Access denied.")
-    st.stop()
 
 
 # --------------------------------------------------
