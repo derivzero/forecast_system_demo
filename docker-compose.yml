@@ -2,7 +2,6 @@ services:
 
   postgres:
     image: postgres:15
-    container_name: postgres
     restart: unless-stopped
     env_file: .env
     environment:
@@ -22,7 +21,6 @@ services:
     build:
       context: .
       dockerfile: streamlit/Dockerfile
-    container_name: streamlit
     restart: unless-stopped
     env_file: .env
     environment:
@@ -40,7 +38,6 @@ services:
     build:
       context: ./dev_env
       dockerfile: Dockerfile
-    container_name: dev_env
     restart: unless-stopped
     env_file: .env
     environment:
