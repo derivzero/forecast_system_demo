@@ -37,8 +37,8 @@ intermediate/**/*
 Thumbs.db
 
 # data objects 
-*.csv
-*.xlsx
 *.png
 *.jpg
 !dev_env/app/tab0/dz_logo.jpg
+dev_env/price_grid.csv
+

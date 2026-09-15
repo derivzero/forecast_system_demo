@@ -49,13 +49,16 @@ def build_artifacts():
     Safe to call from Streamlit.
     """
 
-    answer = input("Pull fresh data from the FRED API? (y/n): ").strip().lower()
+    # Use the FRED data already in data/shared/.
+    # To refresh from the API instead, set REFRESH_FRED = True and supply a FRED_API_KEY.
+    REFRESH_FRED = False
 
-    if answer in ("y", "yes"):
+    if REFRESH_FRED:
         print("Refreshing FRED data from API...")
         refresh_fred_data()
     else:
-        print("Skipping FRED API refresh — using existing data.")
+        print("Using existing FRED data.")
+
     
     # ----------------------------
     # 0. External datasets
