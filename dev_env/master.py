@@ -49,17 +49,18 @@ def build_artifacts():
     Safe to call from Streamlit.
     """
 
-    # Use the FRED data already in data/shared/.
-    # To refresh from the API instead, set REFRESH_FRED = True and supply a FRED_API_KEY.
-    REFRESH_FRED = False
+    # Uncomment to add this API pull back into the code
+    # Before running the FRED API pull, you will need to get a FRED API key
+    # answer = input("Pull fresh data from the FRED API? (y/n): ").strip().lower()
 
-    if REFRESH_FRED:
-        print("Refreshing FRED data from API...")
-        refresh_fred_data()
-    else:
-        print("Using existing FRED data.")
+    # if answer in ("y", "yes"):
+    #     print("Refreshing FRED data from API...")
+    #     refresh_fred_data()
+    # else:
+    #     print("Skipping FRED API refresh — using existing data.")
 
-    
+    print("Skipping FRED API refresh — using existing data.")
+
     # ----------------------------
     # 0. External datasets
     # ----------------------------
@@ -156,7 +157,7 @@ def build_artifacts():
 
     # capture forecast distribution data for PG
     fcst_dist_df_long = pd.concat(charts_out["fcst_distributions"].values(), ignore_index=True)
-    
+
     # dial values -----------------------------------------------------------------------
     dials_base = ["cpi_fah", "oil_prices_lag7", "ppi_farm_products_lag4", "ppi_food_mfg_lag2", "ppi_food_mfg_lag3", "ppi_food_mfg_lag4", "ppi_grocery", 
                   "units_mkt_trend", "sales_mkt_trend", "rdi", "home_price", "sales", "units", "cogs", "gm", "visits", "fixed_cost", "total_cost", "net_income"]
